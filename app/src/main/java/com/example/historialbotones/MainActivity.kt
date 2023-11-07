@@ -32,28 +32,28 @@ class MainActivity : AppCompatActivity() {
         val boton5 = findViewById<Button>(R.id.botonF)
 
 
+
         boton1.setOnClickListener {
-            saveButtonPressedAndShowHistory("\nBoton 1 ")
+            saveButtonPressedAndShowHistory(ButtonClass(Nombre = "Boton " , action = 1))
         }
 
         boton2.setOnClickListener {
-            saveButtonPressedAndShowHistory("\nBoton 2 ")
+            saveButtonPressedAndShowHistory(ButtonClass(Nombre = "Boton " , action = 2))
         }
         boton3.setOnClickListener {
-            saveButtonPressedAndShowHistory("\nBoton 3 ")
+            saveButtonPressedAndShowHistory(ButtonClass(Nombre = "Boton " , action = 3))
         }
         boton4.setOnClickListener {
-            saveButtonPressedAndShowHistory("\nBoton 4 ")
+            saveButtonPressedAndShowHistory(ButtonClass(Nombre = "Boton " , action = 4))
         }
         boton5.setOnClickListener {
-            saveButtonPressedAndShowHistory("\nBoton 5 ")
+            saveButtonPressedAndShowHistory(ButtonClass(Nombre = "Boton " , action = 5))
         }
 
-        // Mostrar el historial actual
         showButtonHistory()
     }
 
-    private fun saveButtonPressedAndShowHistory(buttonName: String) {
+    private fun saveButtonPressedAndShowHistory(buttonName: ButtonClass) {
         GlobalScope.launch(Dispatchers.IO) {
             buttonHistoryRepository.saveButtonPressed(buttonName)
             showButtonHistory()
@@ -63,12 +63,14 @@ class MainActivity : AppCompatActivity() {
     private fun showButtonHistory() {
         val historyTextView = findViewById<TextView>(R.id.historyTextView)
         buttonHistoryRepository.getButtonHistory().onEach { history ->
+            val buttonList = history.split(",")
+            val formattedHistory = buttonList.joinToString("\n") // Join with newlines
             runOnUiThread {
-
-                historyTextView.text = "Historial de botones presionados:\n$history"
+                historyTextView.text = "Historial de botones presionados:\n$history\n"
             }
         }.launchIn(GlobalScope)
     }
+
 }
 val Context.dataStore by preferencesDataStore(name = "button_history")
 
@@ -76,16 +78,20 @@ class ButtonHistoryRepository(context: Context) {
     private val dataStore = context.dataStore
     private val BUTTON_HISTORY_KEY = stringPreferencesKey("button_history_key")
 
-    suspend fun saveButtonPressed(buttonName: String) {
+    suspend fun saveButtonPressed(button: ButtonClass) {
         dataStore.edit { preferences ->
             val currentHistory = preferences[BUTTON_HISTORY_KEY] ?: ""
-            val historyList = currentHistory.split(",").toMutableList()
-            historyList.add(0, buttonName)
-            if (historyList.size > 4) {
-                historyList.removeAt(4)
+            val historyList = currentHistory.split(";").toMutableList()
+
+            if (historyList.size >= 4) {
+                historyList.removeAt(3)
             }
 
-            val updatedHistory = historyList.joinToString(separator = ",")
+            // Convertir ButtonClass a una representación de String para almacenamiento
+            val buttonInfo = "${button.Nombre}:${button.action}"
+            historyList.add(0, buttonInfo)
+
+            val updatedHistory = historyList.joinToString(separator = ";")
             preferences[BUTTON_HISTORY_KEY] = updatedHistory
         }
     }
